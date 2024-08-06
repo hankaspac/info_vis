@@ -30,6 +30,7 @@ print(len(my_chart))
 # TODO interval selection in the first graph acts weirdly
 # TODO display text filds/windows with descriptions - detail on demand
 # TODO add something with displaying books with 1-3 keywords
+# TODO create requirements.txt
 
 
 # interactions:
