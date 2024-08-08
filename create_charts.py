@@ -30,12 +30,13 @@ print(len(my_chart))
 # TODO interval selection in the first graph acts weirdly
 # TODO display text filds/windows with descriptions - detail on demand
 # TODO add something with displaying books with 1-3 keywords
-# TODO create requirements.txt
 
 
 # interactions:
 click = alt.selection_point(encodings=['color'])
+click_detail = alt.selection_point() # creates error
 interval = alt.selection_interval()
+interval_2 = alt.selection_interval()
 
 
 base = alt.Chart(my_chart).mark_circle(size=100).encode(
@@ -56,18 +57,20 @@ base = alt.Chart(my_chart).mark_circle(size=100).encode(
     width=600
 ).interactive()
 
-base_without_year = alt.Chart(my_chart).mark_bar().encode(
+base_without_year = alt.Chart(my_chart).mark_circle().encode(
     x='average_rating:Q',
     y='count(similar_books)', #this does not work - it shows some kind of counting but wrongly
     color='language_code',
     size='num_pages:O',
     tooltip='title_without_series'
 ).transform_filter(
-    'datum.publication_year > 2024' and 'datum.publication_year < 1900' 
+    'datum.publication_year > 2024' and 'datum.publication_year < 1900' or 'datum.publication_year == null' 
+).transform_filter(
+    alt.FieldRangePredicate(field='average_rating', range=[0, 5])
 ).transform_filter(
     click
 ).add_params(
-    interval   
+    interval_2   
 ).properties(
     width=600
 ).interactive()
@@ -78,8 +81,21 @@ chart_with_interval = alt.Chart(my_chart).mark_circle().encode(
     size='num_pages:O',
     tooltip='title_without_series:N'
 ).transform_filter(
-    interval    
+    interval_2
 ).interactive()
+
+sel_values = my_chart['description']
+sel_titles = my_chart['title_without_series']
+
+selection_chart = alt.Chart({'values':[{}]}).mark_text( # displays all the descriptions but selection does not work
+    align="left", baseline="top"
+).encode(
+    x=alt.value(5),  # pixels from left
+    y=alt.value(5),  # pixels from top
+    text=alt.value([f"r: {sel_values}, {sel_titles}"])
+).transform_filter(
+    interval_2    
+)
 
 
 chart_with_langs = alt.Chart(my_chart).mark_bar().encode(
@@ -93,7 +109,9 @@ chart_with_langs = alt.Chart(my_chart).mark_bar().encode(
 ).properties(
     width=900,
 ).interactive()
-main_chart = (base | (base_without_year & chart_with_interval)) & chart_with_langs
+
+
+main_chart = (base | (base_without_year & chart_with_interval & selection_chart)) & chart_with_langs
 
 main_chart.properties(
     width=700,
