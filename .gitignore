@@ -31,3 +31,5 @@ coverage.xml
 *,cover
 # VSCode
 .vscode
+*.json.gz:Zone.Identifier
+*.json:Zone.Identifier
