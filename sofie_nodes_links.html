@@ -103,10 +103,13 @@
 <script src="https://d3js.org/d3.v4.min.js"></script>
 
 <script>
+
+    //dimensions and margins
     var margin = {top: 10, right: 30, bottom: 30, left: 40},
         width = 1200 - margin.left - margin.right,
         height = 800 - margin.top - margin.bottom;
 
+    //svg object
     var svg = d3.select("#my_dataviz")
       .append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -114,14 +117,17 @@
       .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+    //zoom    
     var zoom = d3.zoom()
         .scaleExtent([0.1, 2])
         .on("zoom", function () {
             svg.attr("transform", d3.event.transform);
         });
 
+    //zoom to svg item    
     d3.select("svg").call(zoom);
 
+    //zoom based on slider
     d3.select("#zoomSlider").on("input", function() {
         var scale = +this.value;
         var transform = d3.zoomIdentity.scale(scale);
@@ -130,6 +136,7 @@
 
     var tooltip = d3.select("#tooltip");
 
+    //THIS IS DIFFERENT 
     var data, simulation;
 
     d3.json("25000_nodes_and_links.json?" + new Date().getTime(), function(error, jsonData) { 
@@ -141,47 +148,62 @@
     });
 
     function initializeGraph(nodes, links) {
+        var numNodes = 2000; 
+        var selectedNodes = nodes.slice(0, numNodes);
         var nodeMap = {};
-        nodes.forEach(function(d) {
+        selectedNodes.forEach(function(d) {
             nodeMap[d.book_id] = d;
         });
 
-        simulation = d3.forceSimulation(nodes)                 
+        var selectedLinks = links.filter(function(d) {
+            return nodeMap[d.source] && nodeMap[d.target];
+        });
+
+        simulation = d3.forceSimulation(selectedNodes)                 
             .force("link", d3.forceLink(links).id(function(d) { return d.book_id; })) 
             .force("charge", d3.forceManyBody().strength(-400))         
             .force("center", d3.forceCenter(width / 2, height / 2))  
             .on("tick", ticked);
 
-        var link = svg.selectAll("line")
-            .data(links)
-            .enter().append("line")
-            .style("stroke", "#aaa");
+        //init links    
+        var link = svg
+            .selectAll("line")
+            .data(selectedLinks)
+            .enter()
+            .append("line")
+                .style("stroke", "#aaa");
 
-        var node = svg.selectAll("circle")
-            .data(nodes)
-            .enter().append("circle")
-            .attr("r", 10)
-            .style("fill", "#69b3a2")
-            .on("mouseover", function(d) {
-                tooltip.transition()
-                    .duration(200)
-                    .style("opacity", .9);
-                tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
-                    .style("left", (d3.event.pageX + 5) + "px")
-                    .style("top", (d3.event.pageY - 28) + "px");
-            })
+        //init nodes        
+        var node = svg
+            .selectAll("circle")
+            .data(selectedNodes)
+            .enter()
+            .append("circle")
+                .attr("r", 10)
+                .style("fill", "#69b3a2")
+                .on("mouseover", function(d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                        .style("left", (d3.event.pageX + 5) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+                })
             .on("mouseout", function(d) {
                 tooltip.transition()
                     .duration(500)
                     .style("opacity", 0);
             });
 
-        var label = svg.selectAll("text")
-            .data(nodes)
-            .enter().append("text")
-            .attr("dx", 12)
-            .attr("dy", ".35em")
-            .text(function(d) { return d.title_without_series; });
+        // node labels    
+        var label = svg
+            .selectAll("text")
+            .data(selectedNodes)
+            .enter()
+            .append("text")
+                .attr("dx", 12)
+                .attr("dy", ".35em")
+                .text(function(d) { return d.title_without_series; });
 
         function ticked() {
             link
@@ -257,10 +279,18 @@
             .attr("dx", 12)
             .attr("dy", ".35em")
             .text(function(d) { return d.title_without_series; });
+                
+        //simulation.nodes(filteredNodes).on("tick", ticked);
 
-        simulation.nodes(filteredNodes).on("tick", ticked);
+        //simulation.force("link").links(filteredLinks);
 
-        simulation.force("link").links(filteredLinks);
+        simulation = d3.forceSimulation(filteredNodes)                 
+            .force("link", d3.forceLink(filteredLinks)                     
+                  .id(function(d) { return d.book_id; })                
+            )
+            .force("charge", d3.forceManyBody().strength(-400))         
+            .force("center", d3.forceCenter(width / 2, height / 2))  
+            .on("tick", ticked);
 
         simulation.alpha(1).restart();
 
@@ -281,19 +311,21 @@
         }
     }
 
-    function centerGraphOnNodes(nodes) {
-        if (nodes.length === 0) return;
+    function centerGraphOnNodes(selectedNodes) {
+        if (selectedNodes.length === 0) return;
     
         var xSum = 0, ySum = 0;
-        nodes.forEach(function(d) {
+        selectedNodes.forEach(function(d) {
             xSum += d.x;
             ySum += d.y;
         });
 
-        var avgX = xSum / nodes.length;
-        var avgY = ySum / nodes.length;
+        var avgX = xSum / selectedNodes.length;
+        var avgY = ySum / selectedNodes.length;
 
-        simulation.force("center", d3.forceCenter(width / 2 - avgX, height / 2 - avgY));
+        //simulation.force("center", d3.forceCenter(width / 2 - avgX, height / 2 - avgY));
+        simulation.force("center", d3.forceCenter(avgX, avgY));
+        simulation.alpha(1).restart();
     }
 
 </script>
