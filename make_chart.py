@@ -78,8 +78,8 @@ brushed_chart = alt.Chart(my_chart).mark_square().encode(
 print(type(brushed_chart))
 
 # Base chart for data tables
-my_text = alt.Chart(my_chart).mark_text().encode(
-    y=alt.Y('row_number:O', axis=None)
+my_text = alt.Chart(my_chart).mark_text(align='left',baseline='middle', color='magenta').encode(
+    y=alt.Y('row_number:O', axis=None),
 ).transform_window(
     row_number='row_number()'
 ).transform_filter(
@@ -93,15 +93,17 @@ my_text = alt.Chart(my_chart).mark_text().encode(
 # print(type(my_text))
 
 # Data Tables
-my_title = my_text.encode(text='title_without_series:N')
-my_description = my_text.encode(text='description:N')
+my_title = my_text.encode(text='title_without_series:N').properties(width=300)
+my_description = my_text.encode(text='description:N').properties(width=700)
 text = alt.hconcat(my_title, my_description) # Combine data tables
+
 
 # Build chart
 text_chart = alt.vconcat(
     brushed_chart,
     text
 )
+
 
 main_chart = base & text_chart
 
