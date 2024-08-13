@@ -5,8 +5,10 @@ def process_large_json(input_file, output_file):
     nodes = []
 
     with open(input_file, 'r') as f:
-        for line in f:
-            book = json.loads(line)
+        data = json.load(f)
+        books = data["books"]
+
+        for book in books:
             book_id = int(book["book_id"])
             node = {
                 "text_reviews_count": book.get("text_reviews_count", ""),
@@ -41,8 +43,8 @@ def process_large_json(input_file, output_file):
         json.dump(output, f, indent=4)
 
 def main():
-    input_file = 'short20.json'
-    output_file = '25000_nodes_and_links.json'
+    input_file = 'goodreads_books_final_without_popular_shelves.json'
+    output_file = '25000_nodes_and_links_sofie.json'
     process_large_json(input_file, output_file)
 
 if __name__ == "__main__":
