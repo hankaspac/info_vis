@@ -79,6 +79,27 @@
         .search-box button:hover {
             background-color: #459da0;
         }
+
+        .description-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e0e0e0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .description-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .description-box p {
+            margin: 0;
+            font-size: 14px;
+        }
+        
     </style>
 </head>
 
@@ -89,10 +110,16 @@
     <ul>
         <li><a href="#" onclick="filterAndCenterGraph('vampire')">Vampire</a></li>
         <li><a href="#" onclick="filterAndCenterGraph('werewolf')">Werewolf</a></li>
-        <li><a href="#" onclick="filterAndCenterGraph('zombie')">Zombie</a></li>
+        <li><a href="#" onclick="filterAndCenterGraph('queen')">Queen</a></li>
     </ul>
     <input type="text" placeholder="Search for a topic..." id="searchInput">
     <button type="button" onclick="filterAndCenterGraph(document.getElementById('searchInput').value)">Search</button>
+
+    <!-- Description box -->
+    <div id="descriptionBox" class="description-box">
+        <h3>Book Description</h3>
+        <p id="descriptionContent">Hover over a node to see the description...</p>
+    </div>
 </div>
 
 <div id="my_dataviz"></div>
@@ -179,6 +206,12 @@
             .append("line")
                 .style("stroke", "#aaa");
 
+        
+        // Clear the description when clicking on the SVG background
+        d3.select("#my_dataviz").on("click", function() {
+            document.getElementById('descriptionContent').innerText = 'Click on a node to see the description...';
+        });
+
         //init nodes        
         var node = svg
             .selectAll("circle")
@@ -196,12 +229,20 @@
                         .style("left", (d3.event.pageX + 5) + "px")
                         .style("top", (d3.event.pageY - 28) + "px");
                 })
+
             .on("mouseout", function(d) {
                 node.style("fill", "#69b3a2");
                 link.style("stroke", "#aaa");
                 tooltip.transition()
                     .duration(500)
                     .style("opacity", 0);
+            })
+
+            .on("click", function(event, d) {
+                event.stopPropagation(); // Prevent click event from bubbling up to the SVG
+                // Update the description box on click
+                document.getElementById('descriptionContent').innerHTML = d.description;
+                console.log("I register a click on this object", d.description);
             });
 
         // node labels    
