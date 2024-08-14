@@ -83,17 +83,26 @@
 </head>
 
 <body>
-<div class="search-box">
-    <h3>Search</h3>
-    <p>Frequent searches:</p>
-    <ul>
-        <li><a href="#" onclick="filterAndCenterGraph('vampire')">Vampire</a></li>
-        <li><a href="#" onclick="filterAndCenterGraph('werewolf')">Werewolf</a></li>
-        <li><a href="#" onclick="filterAndCenterGraph('zombie')">Zombie</a></li>
-    </ul>
-    <input type="text" placeholder="Search for a topic..." id="searchInput">
-    <button type="button" onclick="filterAndCenterGraph(document.getElementById('searchInput').value)">Search</button>
-</div>
+    <div class="search-box">
+        <h3>Search</h3>
+        <p>Frequent searches:</p>
+        <ul>
+            <li><a href="#" onclick="filterAndCenterGraph('vampire')">Vampire</a></li>
+            <li><a href="#" onclick="filterAndCenterGraph('werewolf')">Werewolf</a></li>
+            <li><a href="#" onclick="filterAndCenterGraph('zombie')">Zombie</a></li>
+        </ul>
+        <input type="text" placeholder="Search for a topic..." id="searchInput">
+        <button type="button" onclick="filterAndCenterGraph(document.getElementById('searchInput').value)">Search</button>
+    
+        <h3>Highlight Nodes</h3>
+        <input type="text" placeholder="Keyword to color nodes..." id="colorInput">
+        <button type="button" onclick="highlightNodes(document.getElementById('colorInput').value)">Highlight</button>
+    
+        <!-- Toggle Button for Collision Detection -->
+        <h3>Label Collision Detection</h3>
+        <button type="button" id="toggleCollisionButton" onclick="toggleCollisionDetection()">Disable Collision Detection</button>
+    </div>
+    
 
 <div id="my_dataviz"></div>
 <input type="range" id="zoomSlider" min="0.1" max="2" step="0.1" value="1">
@@ -245,71 +254,110 @@
         updateGraph(filteredNodes, filteredLinks);
         centerGraphOnNodes(filteredNodes);
     }
-    
-    function updateGraph(filteredNodes, filteredLinks) {
-        svg.selectAll("*").remove();
 
-        var link = svg.selectAll("line")
-            .data(filteredLinks)
-            .enter().append("line")
-            .style("stroke", "#aaa");
-
-        var node = svg.selectAll("circle")
-            .data(filteredNodes)
-            .enter().append("circle")
-            .attr("r", 10)
-            .style("fill", "#69b3a2")
-            .on("mouseover", function(d) {
-                tooltip.transition()
-                    .duration(200)
-                    .style("opacity", .9);
-                tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
-                    .style("left", (d3.event.pageX + 5) + "px")
-                    .style("top", (d3.event.pageY - 28) + "px");
-            })
-            .on("mouseout", function(d) {
-                tooltip.transition()
-                    .duration(500)
-                    .style("opacity", 0);
+    function highlightNodes(keyword) {
+        if (!keyword) return;
+        svg.selectAll("circle")
+            .style("fill", function(d) {
+                return d.description.toLowerCase().includes(keyword.toLowerCase()) ? "orange" : "#69b3a2";
             });
-
-        var label = svg.selectAll("text")
-            .data(filteredNodes)
-            .enter().append("text")
-            .attr("dx", 12)
-            .attr("dy", ".35em")
-            .text(function(d) { return d.title_without_series; });
-                
-        //simulation.nodes(filteredNodes).on("tick", ticked);
-
-        //simulation.force("link").links(filteredLinks);
-
-        simulation = d3.forceSimulation(filteredNodes)                 
-            .force("link", d3.forceLink(filteredLinks)                     
-                  .id(function(d) { return d.book_id; })                
-            )
-            .force("charge", d3.forceManyBody().strength(-400))         
-            .force("center", d3.forceCenter(width / 2, height / 2))  
-            .on("tick", ticked);
-
-        simulation.alpha(1).restart();
-
-        function ticked() {
-            link
-                .attr("x1", function(d) { return d.source.x; })
-                .attr("y1", function(d) { return d.source.y; })
-                .attr("x2", function(d) { return d.target.x; })
-                .attr("y2", function(d) { return d.target.y; });
-
-            node
-                .attr("cx", function(d) { return d.x; })
-                .attr("cy", function(d) { return d.y; });
-
-            label
-                .attr("x", function(d) { return d.x; })
-                .attr("y", function(d) { return d.y; });
-        }
     }
+    
+    var collisionDetectionEnabled = false; 
+
+function toggleCollisionDetection() {
+    collisionDetectionEnabled = !collisionDetectionEnabled;
+    var button = document.getElementById("toggleCollisionButton");
+    if (collisionDetectionEnabled) {
+        button.textContent = "Disable Collision Detection";
+    } else {
+        button.textContent = "Enable Collision Detection";
+    }
+}
+
+function updateGraph(filteredNodes, filteredLinks) {
+    svg.selectAll("*").remove();
+
+    var link = svg.selectAll("line")
+        .data(filteredLinks)
+        .enter().append("line")
+        .style("stroke", "#aaa");
+
+    var node = svg.selectAll("circle")
+        .data(filteredNodes)
+        .enter().append("circle")
+        .attr("r", 10)
+        .style("fill", "#69b3a2")
+        .on("mouseover", function(d) {
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                .style("left", (d3.event.pageX + 5) + "px")
+                .style("top", (d3.event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(d) {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        });
+
+    var label = svg.selectAll("text")
+        .data(filteredNodes)
+        .enter().append("text")
+        .attr("dx", 12)
+        .attr("dy", ".35em")
+        .text(function(d) { return d.title_without_series; });
+
+    simulation = d3.forceSimulation(filteredNodes)
+        .force("link", d3.forceLink(filteredLinks)
+              .id(function(d) { return d.book_id; })
+        )
+        .force("charge", d3.forceManyBody().strength(-400))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .on("tick", ticked);
+
+    simulation.alpha(1).restart();
+
+    function ticked() {
+        link
+            .attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
+
+        node
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+
+        if (collisionDetectionEnabled) {
+            // Apply collision detection if enabled
+            var labelPadding = 5;
+            label.each(function(d) {
+                var label = d3.select(this);
+                var bbox = label.node().getBBox();
+                filteredNodes.forEach(function(e) {
+                    if (d !== e) {
+                        var dx = d.x - e.x,
+                            dy = d.y - e.y,
+                            distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < bbox.width + labelPadding) {
+                            var angle = Math.atan2(dy, dx);
+                            d.x += Math.cos(angle) * (bbox.width + labelPadding - distance);
+                            d.y += Math.sin(angle) * (bbox.width + labelPadding - distance);
+                        }
+                    }
+                });
+            });
+        }
+
+        label
+            .attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; });
+    }
+}
+
+
 
     function centerGraphOnNodes(selectedNodes) {
         if (selectedNodes.length === 0) return;
@@ -323,7 +371,6 @@
         var avgX = xSum / selectedNodes.length;
         var avgY = ySum / selectedNodes.length;
 
-        //simulation.force("center", d3.forceCenter(width / 2 - avgX, height / 2 - avgY));
         simulation.force("center", d3.forceCenter(avgX, avgY));
         simulation.alpha(1).restart();
     }
