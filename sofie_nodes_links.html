@@ -83,6 +83,18 @@
         .search-box button:hover {
             background-color: #459da0;
         }
+
+        #description-box{
+            width: 300px;
+            background-color: magenta;
+            size: auto;
+            position:absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            padding: 5px;
+            opacity: 8;
+        }
     </style>
 </head>
 
@@ -111,6 +123,9 @@
         <button type="button" id="toggleSimulationButton" onclick="toggleSimulation()">Pause Simulation</button>
     </div>
     
+    <div id="description-box">
+        
+    </div>
 
 <div id="my_dataviz"></div>
 <input type="range" id="zoomSlider" min="0.1" max="2" step="0.1" value="1">
@@ -209,7 +224,7 @@ var node = svg
                 .duration(200)
                 .style("opacity", .9);
             
-            tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+            tooltip.html("Title: " + d.title_without_series + "<br/>Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
                 .style("left", (event.pageX + 5) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
@@ -219,13 +234,16 @@ var node = svg
                 .style("opacity", 0);
         })
         .on("click", function(event, d) { // this doesn't work: supposed to show description on click
-            descriptionTooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
+            var giveDescription = document.getElementById("description-box");
+            giveDescription.style.display = "inline"
+            giveDescription.innerHTML = d.title_without_series + ": " + d.description;
+            //descriptionTooltip.transition()
+            //    .duration(200)
+            //    .style("opacity", .9);
             
-            descriptionTooltip.html(d.description)
-                .style("left", (event.pageX + 5) + "px")
-                .style("top", (event.pageY + 5) + "px");
+            //descriptionTooltip.html(d.description)
+            //    .style("left", (event.pageX + 5) + "px")
+            //    .style("top", (event.pageY + 5) + "px");
         });
 
         // node labels    
@@ -283,10 +301,10 @@ var node = svg
     if (!keyword) return;
     svg.selectAll("circle")
         .attr("r", function(d) {
-            return d.description.toLowerCase().includes(keyword.toLowerCase()) ? 15 : 10; // increase size
+            return d.title_without_series.toLowerCase().includes(keyword.toLowerCase()) || d.description.toLowerCase().includes(keyword.toLowerCase()) ? 15 : 10; // increase size
         })
         .style("fill", function(d) {
-            return d.description.toLowerCase().includes(keyword.toLowerCase()) ? "orange" : "#0072B2"; // change color
+            return d.title_without_series.toLowerCase().includes(keyword.toLowerCase()) || d.description.toLowerCase().includes(keyword.toLowerCase()) ? "orange" : "#0072B2"; // change color
         });
     }
 
@@ -339,7 +357,7 @@ function updateGraph(filteredNodes, filteredLinks) {
             tooltip.transition()
                 .duration(200)
                 .style("opacity", .9);
-            tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+            tooltip.html("Title: " + d.title_without_series + "<br/>Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
                 .style("left", (d3.event.pageX + 5) + "px")
                 .style("top", (d3.event.pageY - 28) + "px");
         })
@@ -347,8 +365,15 @@ function updateGraph(filteredNodes, filteredLinks) {
             tooltip.transition()
                 .duration(500)
                 .style("opacity", 0);
+        })
+        .on("click", function(d) { // this doesn't work: supposed to show description on click
+            var giveDescription = document.getElementById("description-box");
+            giveDescription.style.display = "inline"
+            giveDescription.innerHTML = d.title_without_series + ": " + d.description;
+            // needs styling, bold title, better paragraf, flexible size of the box after the size of the text - better
+            // function for click aside so the text-box disappear
         });
-
+// try to create div with text and display text there
     var label = svg.selectAll("text")
         .data(filteredNodes)
         .enter().append("text")
