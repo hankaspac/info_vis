@@ -21,6 +21,9 @@
             border-radius: 8px;
             pointer-events: none;
         }
+        #descriptionTooltip {
+       background: lightcoral; /* Different color to distinguish it */
+        }
         #zoomSlider {
             width: 100%;
         }
@@ -74,6 +77,7 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            margin-bottom: 15px;
         }
         
         .search-box button:hover {
@@ -101,6 +105,10 @@
         <!-- Toggle Button for Collision Detection -->
         <h3>Label Collision Detection</h3>
         <button type="button" id="toggleCollisionButton" onclick="toggleCollisionDetection()">Enable Collision Detection</button>
+
+        <!-- Stop/start sim , this is mostly for my debugging so remove if you want to -->
+        <h3>Simulation Control</h3>
+        <button type="button" id="toggleSimulationButton" onclick="toggleSimulation()">Pause Simulation</button>
     </div>
     
 
@@ -108,6 +116,8 @@
 <input type="range" id="zoomSlider" min="0.1" max="2" step="0.1" value="1">
 
 <div id="tooltip" class="tooltip" style="opacity:0;"></div>
+<div id="descriptionTooltip" class="tooltip" style="opacity:0;"></div>
+
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
 
@@ -183,26 +193,40 @@
                 .style("stroke", "#aaa");
 
         //init nodes        
-        var node = svg
-            .selectAll("circle")
-            .data(selectedNodes)
-            .enter()
-            .append("circle")
-                .attr("r", 10)
-                .style("fill", "#69b3a2")
-                .on("mouseover", function(d) {
-                    tooltip.transition()
-                        .duration(200)
-                        .style("opacity", .9);
-                    tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
-                        .style("left", (d3.event.pageX + 5) + "px")
-                        .style("top", (d3.event.pageY - 28) + "px");
-                })
-            .on("mouseout", function(d) {
-                tooltip.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-            });
+        var descriptionTooltip = d3.select("#descriptionTooltip");
+
+var node = svg
+    .selectAll("circle")
+    .data(selectedNodes)
+    .enter()
+    .append("circle")
+        .attr("r", 10)
+        .style("fill", "#69b3a2")
+        .style("pointer-events", "all")  // Ensure pointer events are enabled
+        .on("mouseover", function(event, d) {
+            d3.select(this).raise();  // Bring the node to the front on hover
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            
+            tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(event, d) {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        })
+        .on("click", function(event, d) { // this doesn't work: supposed to show description on click
+            descriptionTooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            
+            descriptionTooltip.html(d.description)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY + 5) + "px");
+        });
 
         // node labels    
         var label = svg
@@ -256,14 +280,18 @@
     }
 
     function highlightNodes(keyword) {
-        if (!keyword) return;
-        svg.selectAll("circle")
-            .style("fill", function(d) {
-                return d.description.toLowerCase().includes(keyword.toLowerCase()) ? "orange" : "#69b3a2";
-            });
+    if (!keyword) return;
+    svg.selectAll("circle")
+        .attr("r", function(d) {
+            return d.description.toLowerCase().includes(keyword.toLowerCase()) ? 15 : 10; // increase size
+        })
+        .style("fill", function(d) {
+            return d.description.toLowerCase().includes(keyword.toLowerCase()) ? "orange" : "#0072B2"; // change color
+        });
     }
+
     
-    var collisionDetectionEnabled = false; 
+var collisionDetectionEnabled = false; 
 
 function toggleCollisionDetection() {
     collisionDetectionEnabled = !collisionDetectionEnabled;
@@ -274,6 +302,25 @@ function toggleCollisionDetection() {
         button.textContent = "Enable Collision Detection";
     }
 }
+
+var simulationPaused = false;
+
+function toggleSimulation() {
+    var button = document.getElementById("toggleSimulationButton");
+
+    if (simulationPaused) {
+        // If the simulation is paused, restart it
+        simulation.restart();
+        button.textContent = "Pause Simulation";
+    } else {
+        // If the simulation is running, stop it
+        simulation.stop();
+        button.textContent = "Start Simulation";
+    }
+
+    simulationPaused = !simulationPaused; // Toggle the paused state
+}
+
 
 function updateGraph(filteredNodes, filteredLinks) {
     svg.selectAll("*").remove();
@@ -287,7 +334,7 @@ function updateGraph(filteredNodes, filteredLinks) {
         .data(filteredNodes)
         .enter().append("circle")
         .attr("r", 10)
-        .style("fill", "#69b3a2")
+        .style("fill", "#0072B2")
         .on("mouseover", function(d) {
             tooltip.transition()
                 .duration(200)
@@ -356,8 +403,6 @@ function updateGraph(filteredNodes, filteredLinks) {
             .attr("y", function(d) { return d.y; });
     }
 }
-
-
 
     function centerGraphOnNodes(selectedNodes) {
         if (selectedNodes.length === 0) return;
