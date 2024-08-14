@@ -100,7 +100,7 @@
     
         <!-- Toggle Button for Collision Detection -->
         <h3>Label Collision Detection</h3>
-        <button type="button" id="toggleCollisionButton" onclick="toggleCollisionDetection()">Disable Collision Detection</button>
+        <button type="button" id="toggleCollisionButton" onclick="toggleCollisionDetection()">Enable Collision Detection</button>
     </div>
     
 
@@ -269,9 +269,9 @@ function toggleCollisionDetection() {
     collisionDetectionEnabled = !collisionDetectionEnabled;
     var button = document.getElementById("toggleCollisionButton");
     if (collisionDetectionEnabled) {
-        button.textContent = "Disable Collision Detection";
-    } else {
         button.textContent = "Enable Collision Detection";
+    } else {
+        button.textContent = "Disable Collision Detection";
     }
 }
 
