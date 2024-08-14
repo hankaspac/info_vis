@@ -263,15 +263,15 @@
             });
     }
     
-    var collisionDetectionEnabled = false; 
+    var collisionDetectionEnabled = true; 
 
 function toggleCollisionDetection() {
     collisionDetectionEnabled = !collisionDetectionEnabled;
     var button = document.getElementById("toggleCollisionButton");
     if (collisionDetectionEnabled) {
-        button.textContent = "Enable Collision Detection";
-    } else {
         button.textContent = "Disable Collision Detection";
+    } else {
+        button.textContent = "Enable Collision Detection";
     }
 }
 
