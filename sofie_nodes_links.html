@@ -147,6 +147,13 @@
         
     </div>
     
+    <div id="description-box">
+        <div id="closeDescription">
+            <button type="button" onclick="document.getElementById('description-box').style.display = 'none'">X</button>
+        </div>
+        <div id="description-box-text">
+        </div>
+    </div>
 
 <div id="my_dataviz"></div>
 <input type="range" id="zoomSlider" min="0.1" max="2" step="0.1" value="1">
@@ -239,6 +246,44 @@
         //init nodes        
         var descriptionTooltip = d3.select("#descriptionTooltip");
 
+var node = svg
+    .selectAll("circle")
+    .data(selectedNodes)
+    .enter()
+    .append("circle")
+        .attr("r", 10)
+        .style("fill", "#69b3a2")
+        .style("pointer-events", "all")  // Ensure pointer events are enabled
+        .on("mouseover", function(event, d) {
+            d3.select(this).raise();  // Bring the node to the front on hover
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            
+            tooltip.html("Title: " + d.title_without_series + "<br/>Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(event, d) {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        })
+        .on("click", function(event, d) { // this doesn't work: supposed to show description on click
+            var giveDescription = document.getElementById("description-box");
+            var giveButton = document.getElementById("closeDescription")
+            var showText = document.getElementById("description-box-text");
+            giveDescription.style.display = "block";
+            giveButton.style.display = "inline-block";
+            showText.innerHTML = d.title_without_series + ": " + d.description;
+            //descriptionTooltip.transition()
+            //    .duration(200)
+            //    .style("opacity", .9);
+            
+            //descriptionTooltip.html(d.description)
+            //    .style("left", (event.pageX + 5) + "px")
+            //    .style("top", (event.pageY + 5) + "px");
+        });
 
 
         var node = svg.selectAll("circle")
