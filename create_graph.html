@@ -92,7 +92,7 @@
     top: 10px;
     right: 10px;
     width: 200px;
-    padding: 10px;
+    padding: 8px;
     background-color: #f0f0f0;
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -102,7 +102,7 @@
 /* Positioning for the legend box */
 .legend-box {
     position: fixed;
-    top: 450px; 
+    top: 440px; 
     right: 10px; 
     width: 60px;
     padding: 5px;
@@ -555,8 +555,8 @@ var ratingRange = [3, 5];
 
 var legendSvg = d3.select(".legend-scale")
     .append("svg")
-    .attr("width", 120)
-    .attr("height", 200);
+    .attr("width", 80)
+    .attr("height", 170);
 
 var gradient = legendSvg.append("defs")
     .append("linearGradient")
