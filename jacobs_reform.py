@@ -4,11 +4,12 @@ def process_large_json(input_file, output_file):
     links = []
     nodes = []
 
-    with open(input_file, 'r') as f:
-        for line in f:
-            book = json.loads(line)
-            print("hohoho", type((book[10]["book_id"])))
-            book_id = int(book[line]["book_id"])
+    with open(input_file) as f:
+        books = json.load(f)
+
+        for book in books[0:25000]:
+            
+            book_id = int(book["book_id"])
             node = {
                 "text_reviews_count": book.get("text_reviews_count", ""),
                 "series": book.get("series", []),
@@ -42,7 +43,7 @@ def process_large_json(input_file, output_file):
         json.dump(output, f, indent=4)
 
 def main():
-    input_file = 'graph_links.json'
+    input_file = 'graph_nodes.json'
     output_file = '25000_nodes_and_links.json'
     process_large_json(input_file, output_file)
 

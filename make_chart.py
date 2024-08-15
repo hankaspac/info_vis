@@ -28,18 +28,27 @@ keywords_description = ["steamy", "vampire"]
 
 def books_with_keywords(words):
     count = 0
-    
+    text_file = []
     for i in range(len(my_chart['description'])):
         if words[0] in my_chart['description'][i] and words[1] in my_chart['description'][i]:
             count += 1
-            print(my_chart['title_without_series'][i])
-            # print(my_chart['description'][i])
-            print()
-            print()
+            if my_chart['title_without_series'][i] == '':
+                text_file.append("The book does not have a title.")
+            else:
+                text_file.append(my_chart['title_without_series'][i])
+                text_file.append("\n")
+            text_file.append(my_chart['description'][i])
+            text_file.append("\n \n \n")
+            
         else:
             continue
     print(count)
+    return text_file
+
+text_file = books_with_keywords(keywords_description)
     
+with open("file_words.txt", "w") as output:
+     output.writelines(text_file)    
 #books_with_keywords(keywords_description)
 
 brush = alt.selection_interval()
