@@ -244,7 +244,7 @@
     //THIS IS DIFFERENT 
     var data, simulation;
 
-    d3.json("25000_nodes_and_links.json?" + new Date().getTime(), function(error, jsonData) { 
+    d3.json("25000_nodes_and_links2.json?" + new Date().getTime(), function(error, jsonData) { 
         if (error) throw error;
 
         data = jsonData;
@@ -422,6 +422,7 @@ function toggleCollisionDetection() {
     } else {
         button.textContent = "Enable Collision Detection";
     }
+    simulation.alpha(1).restart();
 }
 
 var simulationPaused = false;
