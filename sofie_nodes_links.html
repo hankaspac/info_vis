@@ -83,6 +83,41 @@
         .search-box button:hover {
             background-color: #459da0;
         }
+        
+        /* Positioning for the search box */
+.search-box {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 250px;
+    padding: 15px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Positioning for the legend box */
+.legend-box {
+    position: fixed;
+    top: 550px; 
+    right: 20px; 
+    width: 150px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    font-size: 12px;
+}
+
+.legend-box h3 {
+    margin-top: 0;
+    font-size: 14px;
+    text-align: center;
+}
+
+
     </style>
 </head>
 
@@ -109,6 +144,7 @@
         <!-- Stop/start sim , this is mostly for my debugging so remove if you want to -->
         <h3>Simulation Control</h3>
         <button type="button" id="toggleSimulationButton" onclick="toggleSimulation()">Pause Simulation</button>
+        
     </div>
     
 
@@ -117,11 +153,19 @@
 
 <div id="tooltip" class="tooltip" style="opacity:0;"></div>
 <div id="descriptionTooltip" class="tooltip" style="opacity:0;"></div>
+<div class="legend-box">
+    <h3>Rating</h3>
+    <div class="legend-scale">
+        <!-- The gradient and labels will be added via SVG -->
+    </div>
+</div>
 
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
 
 <script>
+    var colorScale = d3.scaleSequential(d3.interpolateViridis)  // You can choose any interpolator
+        .domain([5, 3]);  // Adjust the domain based on your actual rating range
 
     //dimensions and margins
     var margin = {top: 10, right: 30, bottom: 30, left: 40},
@@ -195,48 +239,45 @@
         //init nodes        
         var descriptionTooltip = d3.select("#descriptionTooltip");
 
-var node = svg
-    .selectAll("circle")
-    .data(selectedNodes)
-    .enter()
-    .append("circle")
-        .attr("r", 10)
-        .style("fill", "#69b3a2")
-        .style("pointer-events", "all")  // Ensure pointer events are enabled
-        .on("mouseover", function(event, d) {
-            d3.select(this).raise();  // Bring the node to the front on hover
-            tooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
-            
-            tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
-                .style("left", (event.pageX + 5) + "px")
-                .style("top", (event.pageY - 28) + "px");
-        })
-        .on("mouseout", function(event, d) {
-            tooltip.transition()
-                .duration(500)
-                .style("opacity", 0);
-        })
-        .on("click", function(event, d) { // this doesn't work: supposed to show description on click
-            descriptionTooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
-            
-            descriptionTooltip.html(d.description)
-                .style("left", (event.pageX + 5) + "px")
-                .style("top", (event.pageY + 5) + "px");
-        });
 
-        // node labels    
-        var label = svg
-            .selectAll("text")
-            .data(selectedNodes)
-            .enter()
-            .append("text")
-                .attr("dx", 12)
-                .attr("dy", ".35em")
-                .text(function(d) { return d.title_without_series; });
+
+        var node = svg.selectAll("circle")
+            .data(filteredNodes)
+            .enter().append("circle")
+            .attr("r", 10)
+            .style("fill", function(d) { return colorScale(d.average_rating); })  // Apply color scale
+            .on("mouseover", function(d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                    .style("left", (d3.event.pageX + 5) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(event, d) { // this doesn't work: supposed to show description on click
+                descriptionTooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                
+                descriptionTooltip.html(d.description)
+                    .style("left", (event.pageX + 5) + "px")
+                    .style("top", (event.pageY + 5) + "px");
+            });
+
+            // node labels    
+            var label = svg
+                .selectAll("text")
+                .data(selectedNodes)
+                .enter()
+                .append("text")
+                    .attr("dx", 12)
+                    .attr("dy", ".35em")
+                    .text(function(d) { return d.title_without_series; });
 
         function ticked() {
             link
@@ -280,17 +321,17 @@ var node = svg
     }
 
     function highlightNodes(keyword) {
-    if (!keyword) return;
-    svg.selectAll("circle")
-        .attr("r", function(d) {
-            return d.description.toLowerCase().includes(keyword.toLowerCase()) ? 15 : 10; // increase size
-        })
-        .style("fill", function(d) {
-            return d.description.toLowerCase().includes(keyword.toLowerCase()) ? "orange" : "#0072B2"; // change color
-        });
+        if (!keyword) return;
+    
+        svg.selectAll("circle")
+            .attr("r", function(d) {
+                return d.description.toLowerCase().includes(keyword.toLowerCase()) ? 25 : 10; // increase size
+            })
+            .style("fill", function(d) {
+                return d.description.toLowerCase().includes(keyword.toLowerCase()) ? "orange" : colorScale(d.average_rating);  // Use Viridis scale for non-highlighted nodes
+            });
     }
 
-    
 var collisionDetectionEnabled = false; 
 
 function toggleCollisionDetection() {
@@ -309,16 +350,16 @@ function toggleSimulation() {
     var button = document.getElementById("toggleSimulationButton");
 
     if (simulationPaused) {
-        // If the simulation is paused, restart it
+        
         simulation.restart();
         button.textContent = "Pause Simulation";
     } else {
-        // If the simulation is running, stop it
+        
         simulation.stop();
         button.textContent = "Start Simulation";
     }
 
-    simulationPaused = !simulationPaused; // Toggle the paused state
+    simulationPaused = !simulationPaused;
 }
 
 
@@ -330,25 +371,25 @@ function updateGraph(filteredNodes, filteredLinks) {
         .enter().append("line")
         .style("stroke", "#aaa");
 
-    var node = svg.selectAll("circle")
-        .data(filteredNodes)
-        .enter().append("circle")
-        .attr("r", 10)
-        .style("fill", "#0072B2")
-        .on("mouseover", function(d) {
-            tooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
-            tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
-                .style("left", (d3.event.pageX + 5) + "px")
-                .style("top", (d3.event.pageY - 28) + "px");
-        })
-        .on("mouseout", function(d) {
-            tooltip.transition()
-                .duration(500)
-                .style("opacity", 0);
-        });
-
+        var node = svg.selectAll("circle")
+            .data(filteredNodes)
+            .enter().append("circle")
+            .attr("r", 10)
+            .style("fill", function(d) { return colorScale(d.average_rating); })
+            .on("mouseover", function(d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                    .style("left", (d3.event.pageX + 5) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+        ;
     var label = svg.selectAll("text")
         .data(filteredNodes)
         .enter().append("text")
@@ -419,6 +460,52 @@ function updateGraph(filteredNodes, filteredLinks) {
         simulation.force("center", d3.forceCenter(avgX, avgY));
         simulation.alpha(1).restart();
     }
+
+
+var ratingRange = [3, 5];
+
+
+var legendSvg = d3.select(".legend-scale")
+    .append("svg")
+    .attr("width", 120)
+    .attr("height", 200);
+
+var gradient = legendSvg.append("defs")
+    .append("linearGradient")
+    .attr("id", "legendGradient")
+    .attr("x1", "0%")
+    .attr("y1", "100%")  
+    .attr("x2", "0%")
+    .attr("y2", "0%");   
+
+var gradientStops = d3.range(ratingRange[0], ratingRange[1] - 0.1, 0.1);
+
+gradientStops.forEach(function(d) {
+    gradient.append("stop")
+        .attr("offset", ((d - ratingRange[0]) / (ratingRange[1] - ratingRange[0])) * 100 + "%")
+        .attr("stop-color", colorScale(d));
+});
+
+legendSvg.append("rect")
+    .attr("x", 20)
+    .attr("y", 10)
+    .attr("width", 20)
+    .attr("height", 150)
+    .style("fill", "url(#legendGradient)");
+
+// Add labels for the ratings
+var legendScale = d3.scaleLinear()
+    .domain([ratingRange[1], ratingRange[0]])
+    .range([10, 160]); // Corresponds to the rectangle's y positions
+
+var legendAxis = d3.axisRight(legendScale)
+    .ticks(5);
+
+legendSvg.append("g")
+    .attr("class", "axis")
+    .attr("transform", "translate(40, 0)")
+    .call(legendAxis);
+
 
 </script>
 
