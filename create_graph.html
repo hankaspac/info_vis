@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3.js Custom Network Graph</title>
+    <style>
+        body { font: 12px Arial; }
+        #my_dataviz {
+            width: 100%;
+            height: 90vh; 
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: auto;
+            padding: 5px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        #descriptionTooltip {
+       background: lightcoral; /* Different color to distinguish it */
+        }
+        #zoomSlider {
+            width: 100%;
+        }
+        .search-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 250px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .search-box p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        
+        .search-box ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0 0 10px 0;
+        }
+        
+        .search-box ul li {
+            font-size: 14px;
+            margin-bottom: 5px;
+            display: inline;
+            margin-right: 7px;
+        }
+        
+        .search-box input[type="text"] {
+            width: 91%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        .search-box button {
+            width: 100%;
+            padding: 8px;
+            background-color: #4ca2af;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        .search-box button:hover {
+            background-color: #459da0;
+        }
+        
+        /* Positioning for the search box */
+.search-box {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 200px;
+    padding: 8px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Positioning for the legend box */
+.legend-box {
+    position: fixed;
+    top: 440px; 
+    right: 10px; 
+    width: 60px;
+    padding: 5px;
+    padding-right: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    font-size: 12px;
+}
+
+.legend-box h3 {
+    margin-top: 0;
+    margin-bottom: 0;
+    font-size: 14px;
+    text-align: center;
+}
+
+/*description box*/
+#description-box{
+    width: 300px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    size: auto;
+    position:absolute;
+    top: 0;
+    left: 0;
+    display: none;
+    padding: 5px;
+    opacity: 8;
+    text-align: justify;
+    font-size: larger;
+}
+
+#closeDescription{
+    display: none;
+}
+
+#closeDescription button{
+    position: absolute;
+    background-color: magenta;
+    border-radius: 5px;
+    border-width: 0.5px;
+    top: 0;
+    right: 0;
+    margin: 1px;
+}
+
+    </style>
+</head>
+
+<body>
+    <div class="search-box">
+        <h3>Search</h3>
+        <p>Frequent searches:</p>
+        <ul>
+            <li><a href="#" onclick="filterAndCenterGraph('vampire')">Vampire</a></li>
+            <li><a href="#" onclick="filterAndCenterGraph('werewolf')">Werewolf</a></li>
+            <li><a href="#" onclick="filterAndCenterGraph('zombie')">Zombie</a></li>
+        </ul>
+        <input type="text" placeholder="Search for a topic..." id="searchInput">
+        <button type="button" onclick="filterAndCenterGraph(document.getElementById('searchInput').value)">Search</button>
+    
+        <h3>Highlight Nodes</h3>
+        <input type="text" placeholder="Keyword to color nodes..." id="colorInput">
+        <button type="button" onclick="highlightNodes(document.getElementById('colorInput').value)">Highlight</button>
+    
+        <!-- Toggle Button for Collision Detection -->
+        <h3>Label Collision Detection</h3>
+        <button type="button" id="toggleCollisionButton" onclick="toggleCollisionDetection()">Enable Collision Detection</button>
+
+        <!-- Stop/start sim , this is mostly for my debugging so remove if you want to -->
+        <h3>Simulation Control</h3>
+        <button type="button" id="toggleSimulationButton" onclick="toggleSimulation()">Pause Simulation</button>
+        
+    </div>
+    
+    <div id="description-box">
+        <div id="closeDescription">
+            <button type="button" onclick="document.getElementById('description-box').style.display = 'none'">X</button>
+        </div>
+        <div id="description-box-text">
+        </div>
+    </div>
+
+<div id="my_dataviz"></div>
+<input type="range" id="zoomSlider" min="0.1" max="2" step="0.1" value="1">
+
+<div id="tooltip" class="tooltip" style="opacity:0;"></div>
+<div id="descriptionTooltip" class="tooltip" style="opacity:0;"></div>
+<div class="legend-box">
+    <h3>Rating</h3>
+    <div class="legend-scale">
+        <!-- The gradient and labels will be added via SVG -->
+    </div>
+</div>
+
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<script>
+    var colorScale = d3.scaleSequential(d3.interpolateViridis)  // You can choose any interpolator
+        .domain([5, 3]);  // Adjust the domain based on your actual rating range
+
+    //dimensions and margins
+    var margin = {top: 10, right: 30, bottom: 30, left: 40},
+        width = 1200 - margin.left - margin.right,
+        height = 800 - margin.top - margin.bottom;
+
+    //svg object
+    var svg = d3.select("#my_dataviz")
+      .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    //zoom    
+    var zoom = d3.zoom()
+        .scaleExtent([0.1, 2])
+        .on("zoom", function () {
+            svg.attr("transform", d3.event.transform);
+        });
+
+    //zoom to svg item    
+    d3.select("svg").call(zoom);
+
+    //zoom based on slider
+    d3.select("#zoomSlider").on("input", function() {
+        var scale = +this.value;
+        var transform = d3.zoomIdentity.scale(scale);
+        d3.select("svg").transition().duration(200).call(zoom.transform, transform);
+    });
+
+    var tooltip = d3.select("#tooltip");
+
+    //THIS IS DIFFERENT 
+    var data, simulation;
+
+    d3.json("25000_nodes_and_links2.json?" + new Date().getTime(), function(error, jsonData) { 
+        if (error) throw error;
+
+        data = jsonData;
+
+        initializeGraph(data.nodes, data.links);
+    });
+
+    function initializeGraph(nodes, links) {
+        var numNodes = 2000; 
+        var selectedNodes = nodes
+            .filter(function(d) { return d.description; })  // This line filters out nodes without descriptions
+            .slice(0, numNodes);
+        var selectedNodes = nodes.slice(0, numNodes);
+        var nodeMap = {};
+        selectedNodes.forEach(function(d) {
+            nodeMap[d.book_id] = d;
+        });
+
+        var selectedLinks = links.filter(function(d) {
+            return nodeMap[d.source] && nodeMap[d.target];
+        });
+
+        simulation = d3.forceSimulation(selectedNodes)                 
+            .force("link", d3.forceLink(links).id(function(d) { return d.book_id; })) 
+            .force("charge", d3.forceManyBody().strength(-400))         
+            .force("center", d3.forceCenter(width / 2, height / 2))  
+            .on("tick", ticked);
+
+        //init links    
+        var link = svg
+            .selectAll("line")
+            .data(selectedLinks)
+            .enter()
+            .append("line")
+                .style("stroke", "#aaa");
+
+        //init nodes        
+        var descriptionTooltip = d3.select("#descriptionTooltip");
+
+var node = svg
+    .selectAll("circle")
+    .data(selectedNodes)
+    .enter()
+    .append("circle")
+        .attr("r", 10)
+        .style("fill", "#69b3a2")
+        .style("pointer-events", "all")  // Ensure pointer events are enabled
+        .on("mouseover", function(event, d) {
+            d3.select(this).raise();  // Bring the node to the front on hover
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            
+            tooltip.html("Title: " + d.title_without_series + "<br/>Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(event, d) {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        })
+        .on("click", function(event, d) {
+            var giveDescription = document.getElementById("description-box");
+            var giveButton = document.getElementById("closeDescription")
+            var showText = document.getElementById("description-box-text");
+            giveDescription.style.display = "block";
+            giveButton.style.display = "inline-block";
+            showText.innerHTML = d.title_without_series + ": " + d.description;
+            //descriptionTooltip.transition()
+            //    .duration(200)
+            //    .style("opacity", .9);
+            
+            //descriptionTooltip.html(d.description)
+            //    .style("left", (event.pageX + 5) + "px")
+            //    .style("top", (event.pageY + 5) + "px");
+        });
+
+
+        var node = svg.selectAll("circle")
+            .data(filteredNodes)
+            .enter().append("circle")
+            .attr("r", 10)
+            .style("fill", function(d) { return colorScale(d.average_rating); })  // Apply color scale
+            .on("mouseover", function(d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                    .style("left", (d3.event.pageX + 5) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(event, d) { // this doesn't work: supposed to show description on click
+                descriptionTooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                
+                descriptionTooltip.html(d.description)
+                    .style("left", (event.pageX + 5) + "px")
+                    .style("top", (event.pageY + 5) + "px");
+            });
+
+            // node labels    
+            var label = svg
+                .selectAll("text")
+                .data(selectedNodes)
+                .enter()
+                .append("text")
+                    .attr("dx", 12)
+                    .attr("dy", ".35em")
+                    .text(function(d) { return d.title_without_series; });
+
+        function ticked() {
+            link
+                .attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
+            node
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+
+            label
+                .attr("x", function(d) { return d.x; })
+                .attr("y", function(d) { return d.y; });
+        }
+    }
+
+    function filterAndCenterGraph(searchTerm) {
+        var filteredNodes = data.nodes.filter(function(d) {
+            return d.title_without_series.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                   d.description.toLowerCase().includes(searchTerm.toLowerCase());
+        });
+    
+        if (filteredNodes.length === 0) {
+            alert("No nodes found matching the search term.");
+            return;
+        }
+
+        var nodeMap = {};
+        filteredNodes.forEach(function(d) {
+            nodeMap[d.book_id] = d;
+        });
+
+        var filteredLinks = data.links.filter(function(d) {
+            return nodeMap[d.source] && nodeMap[d.target];
+        });
+
+        updateGraph(filteredNodes, filteredLinks);
+        centerGraphOnNodes(filteredNodes);
+    }
+
+    function highlightNodes(keyword) {
+        if (!keyword) return;
+    
+        svg.selectAll("circle")
+            .attr("r", function(d) {
+                return d.description.toLowerCase().includes(keyword.toLowerCase()) ? 25 : 10; // increase size
+            })
+            .style("fill", function(d) {
+                return d.description.toLowerCase().includes(keyword.toLowerCase()) ? "orange" : colorScale(d.average_rating);  // Use Viridis scale for non-highlighted nodes
+            });
+    }
+
+var collisionDetectionEnabled = false; 
+
+function toggleCollisionDetection() {
+    collisionDetectionEnabled = !collisionDetectionEnabled;
+    var button = document.getElementById("toggleCollisionButton");
+    if (collisionDetectionEnabled) {
+        button.textContent = "Disable Collision Detection";
+    } else {
+        button.textContent = "Enable Collision Detection";
+    }
+    simulation.alpha(1).restart();
+}
+
+var simulationPaused = false;
+
+function toggleSimulation() {
+    var button = document.getElementById("toggleSimulationButton");
+
+    if (simulationPaused) {
+        
+        simulation.restart();
+        button.textContent = "Pause Simulation";
+    } else {
+        
+        simulation.stop();
+        button.textContent = "Start Simulation";
+    }
+
+    simulationPaused = !simulationPaused;
+}
+
+
+function updateGraph(filteredNodes, filteredLinks) {
+    svg.selectAll("*").remove();
+
+    var link = svg.selectAll("line")
+        .data(filteredLinks)
+        .enter().append("line")
+        .style("stroke", "#aaa");
+
+        var node = svg.selectAll("circle")
+            .data(filteredNodes)
+            .enter().append("circle")
+            .attr("r", 10)
+            .style("fill", function(d) { return colorScale(d.average_rating); })
+            .on("mouseover", function(d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html("Title: " + d.title_without_series + "<br/>Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                    .style("left", (d3.event.pageX + 5) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(d) {
+            var giveDescription = document.getElementById("description-box");
+            var giveButton = document.getElementById("closeDescription")
+            var showText = document.getElementById("description-box-text");
+            giveDescription.style.display = "block";
+            giveButton.style.display = "inline-block";
+            showText.innerHTML = d.title_without_series + ": " + d.description;
+        })
+        ;
+    var label = svg.selectAll("text")
+        .data(filteredNodes)
+        .enter().append("text")
+        .attr("dx", 12)
+        .attr("dy", ".35em")
+        .text(function(d) { return d.title_without_series; });
+
+    simulation = d3.forceSimulation(filteredNodes)
+        .force("link", d3.forceLink(filteredLinks)
+              .id(function(d) { return d.book_id; })
+        )
+        .force("charge", d3.forceManyBody().strength(-400))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .on("tick", ticked);
+
+    simulation.alpha(1).restart();
+
+    function ticked() {
+        link
+            .attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
+
+        node
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+
+        if (collisionDetectionEnabled) {
+            // Apply collision detection if enabled
+            var labelPadding = 5;
+            label.each(function(d) {
+                var label = d3.select(this);
+                var bbox = label.node().getBBox();
+                filteredNodes.forEach(function(e) {
+                    if (d !== e) {
+                        var dx = d.x - e.x,
+                            dy = d.y - e.y,
+                            distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < bbox.width + labelPadding) {
+                            var angle = Math.atan2(dy, dx);
+                            d.x += Math.cos(angle) * (bbox.width + labelPadding - distance);
+                            d.y += Math.sin(angle) * (bbox.width + labelPadding - distance);
+                        }
+                    }
+                });
+            });
+        }
+
+        label
+            .attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; });
+    }
+}
+
+    function centerGraphOnNodes(selectedNodes) {
+        if (selectedNodes.length === 0) return;
+    
+        var xSum = 0, ySum = 0;
+        selectedNodes.forEach(function(d) {
+            xSum += d.x;
+            ySum += d.y;
+        });
+
+        var avgX = xSum / selectedNodes.length;
+        var avgY = ySum / selectedNodes.length;
+
+        simulation.force("center", d3.forceCenter(avgX, avgY));
+        simulation.alpha(1).restart();
+    }
+
+
+var ratingRange = [3, 5];
+
+
+var legendSvg = d3.select(".legend-scale")
+    .append("svg")
+    .attr("width", 80)
+    .attr("height", 170);
+
+var gradient = legendSvg.append("defs")
+    .append("linearGradient")
+    .attr("id", "legendGradient")
+    .attr("x1", "0%")
+    .attr("y1", "100%")  
+    .attr("x2", "0%")
+    .attr("y2", "0%");   
+
+var gradientStops = d3.range(ratingRange[0], ratingRange[1] - 0.1, 0.1);
+
+gradientStops.forEach(function(d) {
+    gradient.append("stop")
+        .attr("offset", ((d - ratingRange[0]) / (ratingRange[1] - ratingRange[0])) * 100 + "%")
+        .attr("stop-color", colorScale(d));
+});
+
+legendSvg.append("rect")
+    .attr("x", 20)
+    .attr("y", 10)
+    .attr("width", 20)
+    .attr("height", 150)
+    .style("fill", "url(#legendGradient)");
+
+// Add labels for the ratings
+var legendScale = d3.scaleLinear()
+    .domain([ratingRange[1], ratingRange[0]])
+    .range([10, 160]); // Corresponds to the rectangle's y positions
+
+var legendAxis = d3.axisRight(legendScale)
+    .ticks(5);
+
+legendSvg.append("g")
+    .attr("class", "axis")
+    .attr("transform", "translate(40, 0)")
+    .call(legendAxis);
+
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3.js Custom Network Graph</title>
+    <style>
+        body { font: 12px Arial; }
+        #my_dataviz {
+            width: 100%;
+            height: 90vh; 
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: auto;
+            padding: 5px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        #zoomSlider {
+            width: 100%;
+        }
+        .search-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 250px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .search-box p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        
+        .search-box ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0 0 10px 0;
+        }
+        
+        .search-box ul li {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .search-box input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        .search-box button {
+            width: 100%;
+            padding: 8px;
+            background-color: #4ca2af;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .search-box button:hover {
+            background-color: #459da0;
+        }
+    </style>
+</head>
+
+<body>
+<div class="search-box">
+    <h3>Search</h3>
+    <p>Frequent searches:</p>
+    <ul>
+        <li><a href="#" onclick="filterAndCenterGraph('vampire')">Vampire</a></li>
+        <li><a href="#" onclick="filterAndCenterGraph('werewolf')">Werewolf</a></li>
+        <li><a href="#" onclick="filterAndCenterGraph('zombie')">Zombie</a></li>
+    </ul>
+    <input type="text" placeholder="Search for a topic..." id="searchInput">
+    <button type="button" onclick="filterAndCenterGraph(document.getElementById('searchInput').value)">Search</button>
+</div>
+
+<div id="my_dataviz"></div>
+<input type="range" id="zoomSlider" min="0.1" max="2" step="0.1" value="1">
+
+<div id="tooltip" class="tooltip" style="opacity:0;"></div>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<!-- JS code -->
+<script> 
+    
+    // dimensions and margins
+    var margin = {top: 10, right: 30, bottom: 30, left: 40},
+        width = 1200 - margin.left - margin.right,
+        height = 800 - margin.top - margin.bottom;
+
+    // svg object
+    var svg = d3.select("#my_dataviz")
+      .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    // zoom
+    var zoom = d3.zoom()
+        .scaleExtent([0.1, 2])
+        .on("zoom", function () {
+            svg.attr("transform", d3.event.transform)
+        });
+
+    // zoom to svg element
+    d3.select("svg").call(zoom);
+
+    // zoom based on slider
+    d3.select("#zoomSlider").on("input", function() {
+        var scale = +this.value;
+        var transform = d3.zoomIdentity.scale(scale);
+        d3.select("svg").transition().duration(200).call(zoom.transform, transform);
+    });
+
+    var tooltip = d3.select("#tooltip");
+
+    d3.json("25000_nodes_and_links.json?" + new Date().getTime(), function(error, data) { 
+        if (error) throw error;
+
+        console.log("Original number of nodes: ", data.nodes.length);
+        console.log("Original number of links: ", data.links.length);
+
+        // filt for "vampire"
+        //var filteredNodes = data.nodes.filter(function(d) {
+        //    return d.description && d.description.toLowerCase().includes("vampire") && d.similar_books.length > 0;
+        //});
+        
+        function filterAndCenterGraph(searchTerm) {
+            var filteredNodes = data.nodes.filter(function(d) {
+                return d.title_without_series.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        d.description.toLowerCase().includes(searchTerm.toLowerCase());
+            });
+        }
+
+        console.log("Filtered number of nodes: ", filteredNodes.length);
+
+        // node cap, default 2000
+        var numNodes = 2000; 
+        var selectedNodes = filteredNodes.slice(0, numNodes);
+
+        console.log("Selected number of nodes: ", selectedNodes.length);
+
+        // map
+        var nodeMap = {};
+        selectedNodes.forEach(function(d) {
+            nodeMap[d.book_id] = d;
+        });
+
+        var selectedLinks = data.links.filter(function(d) {
+            return nodeMap[d.source] && nodeMap[d.target];
+        });
+
+        console.log("Selected number of links: ", selectedLinks.length);
+
+        // init links
+        var link = svg
+          .selectAll("line")
+          .data(selectedLinks)
+          .enter()
+          .append("line")
+            .style("stroke", "#aaa");
+
+        // Init nodes
+        var node = svg
+          .selectAll("circle")
+          .data(selectedNodes)
+          .enter()
+          .append("circle")
+            .attr("r", 10)
+            .style("fill", "#69b3a2")
+            .on("mouseover", function(d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html("Publisher: " + d.publisher + "<br/>Rating: " + d.average_rating)
+                    .style("left", (d3.event.pageX + 5) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+
+        // node labels
+        var label = svg
+          .selectAll("text")
+          .data(selectedNodes)
+          .enter()
+          .append("text")
+            .attr("dx", 12)
+            .attr("dy", ".35em")
+            .text(function(d) { return d.title_without_series; });
+
+        // force applied to network
+        var simulation = d3.forceSimulation(selectedNodes)                 
+            .force("link", d3.forceLink(selectedLinks)                     
+                  .id(function(d) { return d.book_id; })                
+            )
+            .force("charge", d3.forceManyBody().strength(-400))         
+            .force("center", d3.forceCenter(width / 2, height / 2))  
+            .on("tick", ticked);
+
+
+        // updating node positions
+        function ticked() {
+          link
+              .attr("x1", function(d) { return d.source.x; })
+              .attr("y1", function(d) { return d.source.y; })
+              .attr("x2", function(d) { return d.target.x; })
+              .attr("y2", function(d) { return d.target.y; });
+
+          node
+               .attr("cx", function (d) { return d.x; })
+               .attr("cy", function(d) { return d.y; });
+
+          label
+               .attr("x", function(d) { return d.x; })
+               .attr("y", function(d) { return d.y; });
+        }
+    });
+</script>
+
+</body>
+</html>
