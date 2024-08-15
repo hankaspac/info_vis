@@ -254,6 +254,9 @@
 
     function initializeGraph(nodes, links) {
         var numNodes = 2000; 
+        var selectedNodes = nodes
+            .filter(function(d) { return d.description; })  // This line filters out nodes without descriptions
+            .slice(0, numNodes);
         var selectedNodes = nodes.slice(0, numNodes);
         var nodeMap = {};
         selectedNodes.forEach(function(d) {
